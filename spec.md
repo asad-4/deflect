@@ -2,7 +2,7 @@
 
 A first-person, single-arena sword duel in the browser. One player against one
 AI boss, the **Ashen Warden**. This spec makes requirements R1–R8 from
-`problem.md`, and the Round 2 requirement R9, exact enough to test.
+`problem.md`, and the Round 2 requirements R9–R10, exact enough to test.
 
 All times are in **milliseconds (ms)**, distances in **metres (m)**, speeds in
 **m/s**. Health and posture are integers on a 0–100 scale unless noted.
@@ -214,6 +214,10 @@ For combos, `windup` repeats for each strike before `recovery`.
   in a row**, which deals **extra damage and posture damage**, with **a Focus
   meter that fills when you deflect**, so that **skilled players who time their
   deflects well earn a powerful move that rewards good timing**.
+- **R10:** Let the player perform a finishing move by pressing **F** once the
+  boss has lost 70% or more of its health, which instantly kills the boss **as
+  long as the boss is not mid-attack**, so that **players get a satisfying
+  cinematic finish after wearing the boss down**.
 
 ## R9 — Special combo: Ember Strike
 
@@ -256,6 +260,23 @@ For combos, `windup` repeats for each strike before `recovery`.
 - If the boss is already broken when the Ember Strike lands, it is the
   finishing blow (R6) and the player wins.
 - Like a normal attack, block and dodge may cancel its recovery.
+
+## R10 — Execution
+
+| Action  | Key    | Type         |
+|---------|--------|--------------|
+| Execute | `KeyF` | press (edge) |
+
+- Pressing `F` performs the execution when **all** of these hold:
+  - boss health is **30 or less** (it has lost 70 % or more of its 100 health);
+  - the boss is **not mid-attack**: its state is idle, recovery or broken
+    (never during any wind-up, including between combo strikes);
+  - the player is within **3.0 m** of the boss;
+  - the player is free to act (ready, or in attack recovery).
+- The execution is instant: the boss dies and the player **wins** (end screen
+  after the same 1500 ms delay as R8).
+- Otherwise pressing `F` does nothing. It can be tried any number of times.
+- The HUD shows an "F — Execute" prompt while the execution is available.
 
 ---
 

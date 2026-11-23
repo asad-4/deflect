@@ -1,7 +1,7 @@
 // HTML/CSS HUD. Reads game state; the only thing it sends back is the
 // Restart button click (forwarded as a restart input by main.js).
 import { PLAYER, SPECIAL } from '../logic/constants.js';
-import { distanceBetween, endScreenVisible } from '../logic/game.js';
+import { canExecute, distanceBetween, endScreenVisible } from '../logic/game.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -17,6 +17,7 @@ export function createHud({ onRestart }) {
     playerPostureFill: $('#player-panel .posture .fill'),
     warning: $('#warning'),
     finisher: $('#finisher-prompt'),
+    execute: $('#execute-prompt'),
     focus: $('#focus'),
     focusPips: [...document.querySelectorAll('#focus .pip')],
     vignette: $('#vignette'),
@@ -48,7 +49,7 @@ export function createHud({ onRestart }) {
   function onEvent(e) {
     if (e.type === 'playerHit') hurt = 1;
     if (e.type === 'deflect') flash = 1;
-    if (e.type === 'specialStart') flash = 1;
+    if (e.type === 'specialStart' || e.type === 'execution') flash = 1;
     if (e.type === 'specialNotReady') denied = 1;
     if (e.type === 'restart') hurt = flash = denied = 0;
   }
@@ -70,7 +71,8 @@ export function createHud({ onRestart }) {
       enemy.state === 'broken' && !canFinish ? 'Get closer for the finishing blow' : 'J — Finishing Blow';
     if (enemy.state === 'broken' && game.status === 'playing') el.finisher.classList.add('show');
 
-    // R9 Focus meter.
+    // R10 execute prompt, R9 Focus meter.
+    el.execute.classList.toggle('show', canExecute(game));
     el.focusPips.forEach((pip, i) => pip.classList.toggle('on', i < player.focus));
     el.focus.classList.toggle('full', player.focus >= SPECIAL.focusMax);
     denied = Math.max(0, denied - dt / 400);

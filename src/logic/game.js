@@ -1,10 +1,11 @@
 // Top-level game state: player actions (R1), wiring combat/AI together,
-// win/lose and restart (R6, R7, R8) and the Ember Strike (R9). Pure JS — the renderer only reads this.
+// win/lose and restart (R6, R7, R8), Ember Strike (R9) and execution (R10). Pure JS — the renderer only reads this.
 import {
   ARENA_RADIUS,
   ATTACKS,
   DEFLECT,
   END_SCREEN_DELAY,
+  EXECUTION,
   MAX_STEP_MS,
   MIN_DISTANCE,
   PLAYER,
@@ -13,11 +14,12 @@ import {
 } from './constants.js';
 import { createHealth, isDead } from './health.js';
 import { createPosture, recoverPosture, setPosture } from './posture.js';
-import { createEnemy, updateEnemy } from './enemyAI.js';
+import { createEnemy, killEnemy, updateEnemy } from './enemyAI.js';
 import {
   applyIncoming,
   applyPlayerHit,
   applySpecialHit,
+  enemyExecutable,
   judgeIncoming,
 } from './combat.js';
 
@@ -132,8 +134,29 @@ function canStartSpecial(player) {
   return player.status === 'ready' || player.status === 'attacking';
 }
 
+/** R10: whether pressing F now would execute the boss. */
+export function canExecute(game) {
+  return (
+    game.status === 'playing' &&
+    enemyExecutable(game.enemy) &&
+    distanceBetween(game) <= EXECUTION.reach &&
+    canAct(game.player)
+  );
+}
+
 function handleInput(game, intent, t0) {
   const { player, enemy } = game;
+
+  // Execution (R10): instant win when the boss is low and not mid-attack.
+  if (intent.execute && canExecute(game)) {
+    killEnemy(enemy, t0);
+    player.status = 'ready';
+    player.attackPhase = null;
+    player.attackKind = null;
+    game.events.push({ type: 'execution' });
+    endGame(game, 'won', t0);
+    return;
+  }
 
   // Block press edge: record time and anti-mash eligibility (R2).
   if (intent.blockPressed) {
@@ -324,7 +347,7 @@ export function update(game, intent, dt) {
     const sub = Math.min(MAX_STEP_MS, remaining);
     const subIntent = first
       ? intent
-      : { ...intent, attack: false, blockPressed: false, dodge: false, special: false, restart: false };
+      : { ...intent, attack: false, blockPressed: false, dodge: false, special: false, execute: false, restart: false };
     step(game, subIntent, sub);
     remaining -= sub;
     first = false;

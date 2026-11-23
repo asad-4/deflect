@@ -124,3 +124,9 @@ export const SPECIAL = Object.freeze({
   posture: 20,
 });
 
+// R10: Execution (F) once the boss is at or below 30 health and not mid-attack.
+export const EXECUTION = Object.freeze({
+  healthThreshold: 30,
+  reach: 3.0,
+  allowedEnemyStates: Object.freeze(['idle', 'recovery', 'broken']),
+});

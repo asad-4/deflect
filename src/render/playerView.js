@@ -224,6 +224,7 @@ export function createPlayerView(camera) {
         blockAt = lastTime;
         break;
       case 'finisher':
+      case 'execution':
         finisherAt = lastTime;
         break;
       case 'dodge':

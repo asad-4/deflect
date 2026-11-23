@@ -152,6 +152,24 @@ canvas {
   animation: pulse 0.5s ease-in-out infinite alternate;
 }
 
+#execute-prompt {
+  position: absolute;
+  top: 68%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 20px;
+  letter-spacing: 0.2em;
+  color: #ffb3a0;
+  text-shadow: 0 0 12px #c0141a, 0 0 3px #000;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+#execute-prompt.show {
+  opacity: 1;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
 /* ---------- focus meter (R9) ---------- */
 #focus {
   display: flex;

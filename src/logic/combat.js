@@ -1,7 +1,7 @@
 // Combat resolution: deflect vs block vs hit vs dodge (R2, R5), posture effects (R3),
 // player hits on the boss and the finishing blow (R6), damage (R7),
-// Focus gain and the Ember Strike (R9).
-import { ATTACKS, DEFLECT, ENEMY, PLAYER, SPECIAL } from './constants.js';
+// Focus gain and the Ember Strike (R9), the execution check (R10).
+import { ATTACKS, DEFLECT, ENEMY, EXECUTION, PLAYER, SPECIAL } from './constants.js';
 import { applyDamage, isDead } from './health.js';
 import { addPosture } from './posture.js';
 import { breakEnemy, killEnemy, playerHitEffect } from './enemyAI.js';
@@ -144,3 +144,9 @@ export function applySpecialHit(enemy, at) {
   return events;
 }
 
+/** R10: true if the boss is low enough and not mid-attack (reach/player checked by caller). */
+export function enemyExecutable(enemy) {
+  return (
+    enemy.health.current <= EXECUTION.healthThreshold && EXECUTION.allowedEnemyStates.includes(enemy.state)
+  );
+}
