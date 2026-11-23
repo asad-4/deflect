@@ -132,6 +132,8 @@ Player attacks on the boss:
 - **Player:** when a block pushes posture to 100 the guard breaks. The player
   is stunned for **1500 ms** (cannot move, attack, block or dodge; hits deal
   full damage). When the stun ends, player posture is set to **50**.
+  A *deflect* never breaks the player's guard: posture gained from a deflect
+  stops at **99**.
 - **Boss:** when posture reaches 100 the boss is **broken** for **3000 ms**:
   any attack in progress is cancelled, it cannot attack or guard, and the
   player may perform the finishing blow (R6). If the window passes, boss
