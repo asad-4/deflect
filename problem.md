@@ -12,3 +12,8 @@ People who enjoy challenging, skill-based combat games like Sekiro often want so
 - R6: Allow the player to perform a finishing blow when the boss's posture breaks, which wins the fight.
 - R7: Give both the player and the boss a health bar. Taking a hit lowers health, and the player loses when their health reaches zero.
 - R8: Display a win or lose screen at the end of the fight with an option to restart.
+
+# Additional requirements
+
+- R9: Let the player perform a special combo attack called Ember Strike by pressing J, J, L, once a Focus meter is filled by deflecting attacks, so that players are rewarded for good deflects with a powerful attack.
+- R10: Let the player perform an execution with F that instantly kills the boss once its health drops to 30% or less, as long as the boss is not in the middle of an attack, so that players get a satisfying finish after wearing the boss down.
