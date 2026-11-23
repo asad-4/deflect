@@ -327,20 +327,61 @@ function buildFire(scene, x, z, index) {
   glow.position.y = 0.6;
   group.add(glow);
 
-  const light = new THREE.PointLight(0xff7a2a, 18, 14, 1.6);
+  const light = new THREE.PointLight(0xff7a2a, 26, 20, 1.5);
   light.position.y = 1.1;
   group.add(light);
 
   scene.add(group);
-  return { group, flames, light, glow, phase: index * 1.7, base: 18 };
+  return { group, flames, light, glow, phase: index * 1.7, base: 26 };
+}
+
+/**
+ * Image-based lighting for metal: a tiny night sky with warm fire blobs,
+ * prefiltered with PMREM so armor and blades have something to reflect.
+ */
+function buildEnvironmentMap(renderer) {
+  const envScene = new THREE.Scene();
+  const sky = new THREE.Mesh(
+    new THREE.SphereGeometry(10, 16, 8),
+    new THREE.MeshBasicMaterial({ color: 0x1a2648, side: THREE.BackSide }),
+  );
+  envScene.add(sky);
+  const ground = new THREE.Mesh(
+    new THREE.CircleGeometry(10, 16),
+    new THREE.MeshBasicMaterial({ color: 0x0c0907 }),
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -1;
+  envScene.add(ground);
+  const fireMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xff7a2a).multiplyScalar(4) });
+  for (const [x, z] of FIRE_SPOTS) {
+    const blob = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 6), fireMat);
+    const len = Math.hypot(x, z) || 1;
+    blob.position.set((x / len) * 8, 0, (z / len) * 8);
+    envScene.add(blob);
+  }
+  const moon = new THREE.Mesh(
+    new THREE.SphereGeometry(0.8, 8, 6),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(0xdde6ff).multiplyScalar(3) }),
+  );
+  moon.position.set(-4, 5, -6);
+  envScene.add(moon);
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const target = pmrem.fromScene(envScene, 0.04);
+  pmrem.dispose();
+  return target.texture;
 }
 
 /**
  * Builds the whole environment. Returns { fires, update(dt, time) }.
  * fires[].group.position is used by the ember system.
  */
-export function buildEnvironment(scene) {
+export function buildEnvironment(scene, renderer) {
   scene.background = new THREE.Color(0x0b1226);
+  if (renderer) {
+    scene.environment = buildEnvironmentMap(renderer);
+    scene.environmentIntensity = 1.0;
+  }
   scene.fog = new THREE.FogExp2(0x0b1226, 0.032);
 
   const moonDir = buildSky(scene);
