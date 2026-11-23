@@ -1,6 +1,7 @@
 // Combat resolution: deflect vs block vs hit vs dodge (R2, R5), posture effects (R3),
-// player hits on the boss and the finishing blow (R6), damage (R7).
-import { ATTACKS, DEFLECT, ENEMY, PLAYER } from './constants.js';
+// player hits on the boss and the finishing blow (R6), damage (R7),
+// Focus gain and the Ember Strike (R9).
+import { ATTACKS, DEFLECT, ENEMY, PLAYER, SPECIAL } from './constants.js';
 import { applyDamage, isDead } from './health.js';
 import { addPosture } from './posture.js';
 import { breakEnemy, killEnemy, playerHitEffect } from './enemyAI.js';
@@ -38,6 +39,7 @@ export function setPlayerStatus(player, status, at, duration) {
   player.statusStart = at;
   player.statusUntil = at + duration;
   player.attackPhase = null;
+  player.attackKind = null;
   player.blocking = false;
 }
 
@@ -53,6 +55,11 @@ export function applyIncoming(player, enemy, attackId, outcome, at) {
       const room = Math.max(0, player.posture.max - 1 - player.posture.current);
       addPosture(player.posture, Math.min(attack.deflectSelfPosture, room), at);
       events.push({ type: 'deflect', attack: attackId });
+      // R9: each perfect deflect charges the Focus meter.
+      if (player.focus < SPECIAL.focusMax) {
+        player.focus = Math.min(SPECIAL.focusMax, player.focus + SPECIAL.focusPerDeflect);
+        events.push({ type: 'focusGain', focus: player.focus, full: player.focus >= SPECIAL.focusMax });
+      }
       if (addPosture(enemy.posture, attack.deflectEnemyPosture, at)) {
         breakEnemy(enemy, at);
         events.push({ type: 'enemyPostureBreak' });
@@ -103,12 +110,37 @@ export function applyPlayerHit(enemy, at) {
     events.push({ type: 'enemyHit', damage: effect.damage });
     if (enemy.state === 'recovery') enemy.flinchAt = at;
   }
+  afterEnemyDamage(enemy, effect.posture, at, events);
+  return events;
+}
+
+/** Shared aftermath of a damaging hit on the boss: death-break or posture break. */
+function afterEnemyDamage(enemy, posture, at, events) {
   if (isDead(enemy.health)) {
     breakEnemy(enemy, at, Infinity);
     events.push({ type: 'enemyPostureBreak', cause: 'health' });
-  } else if (addPosture(enemy.posture, effect.posture, at)) {
+  } else if (addPosture(enemy.posture, posture, at)) {
     breakEnemy(enemy, at, ENEMY.brokenDuration);
     events.push({ type: 'enemyPostureBreak' });
   }
+}
+
+/**
+ * R9: the Ember Strike landing on the boss (already in reach) at time `at`.
+ * Breaks through the boss's guard; on a broken boss it is the finishing blow.
+ */
+export function applySpecialHit(enemy, at) {
+  const events = [];
+  if (enemy.state === 'dead') return events;
+  if (enemy.state === 'broken') {
+    killEnemy(enemy, at);
+    events.push({ type: 'specialHit', damage: 0 }, { type: 'finisher' });
+    return events;
+  }
+  applyDamage(enemy.health, SPECIAL.damage);
+  enemy.flinchAt = at;
+  events.push({ type: 'specialHit', damage: SPECIAL.damage });
+  afterEnemyDamage(enemy, SPECIAL.posture, at, events);
   return events;
 }
+

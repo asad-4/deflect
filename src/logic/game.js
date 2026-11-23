@@ -1,5 +1,5 @@
 // Top-level game state: player actions (R1), wiring combat/AI together,
-// win/lose and restart (R6, R7, R8). Pure JS — the renderer only reads this.
+// win/lose and restart (R6, R7, R8) and the Ember Strike (R9). Pure JS — the renderer only reads this.
 import {
   ARENA_RADIUS,
   ATTACKS,
@@ -9,11 +9,17 @@ import {
   MIN_DISTANCE,
   PLAYER,
   PLAYER_START,
+  SPECIAL,
 } from './constants.js';
 import { createHealth, isDead } from './health.js';
 import { createPosture, recoverPosture, setPosture } from './posture.js';
 import { createEnemy, updateEnemy } from './enemyAI.js';
-import { applyIncoming, applyPlayerHit, judgeIncoming } from './combat.js';
+import {
+  applyIncoming,
+  applyPlayerHit,
+  applySpecialHit,
+  judgeIncoming,
+} from './combat.js';
 
 export function createPlayer() {
   return {
@@ -25,12 +31,15 @@ export function createPlayer() {
     statusStart: 0,
     statusUntil: 0,
     attackPhase: null, // 'windup' | 'recovery' | null
+    attackKind: null, // 'normal' | 'special' | null (R9)
     attackHitAt: 0,
     blocking: false,
     blockPressedAt: -Infinity,
     blockPressEligible: false,
     lastDodgeAt: -Infinity,
     dodgeDir: { x: 0, z: 0 },
+    focus: 0, // R9 Focus meter, 0..SPECIAL.focusMax
+    attackPresses: [], // R9: times of recent J presses for the J, J, L sequence
   };
 }
 
@@ -111,22 +120,38 @@ function endGame(game, result, at) {
 }
 
 /** Handles input at the start of a step (time t0). */
+/** R9: true if the J, J, L sequence is complete at time t (L pressed at t). */
+export function comboSequenceComplete(player, t) {
+  const presses = player.attackPresses;
+  if (presses.length < 2) return false;
+  return t - presses[presses.length - 2] <= SPECIAL.inputWindow;
+}
+
+/** R9: whether the player's state allows the Ember Strike to start. */
+function canStartSpecial(player) {
+  return player.status === 'ready' || player.status === 'attacking';
+}
+
 function handleInput(game, intent, t0) {
   const { player, enemy } = game;
 
   // Block press edge: record time and anti-mash eligibility (R2).
   if (intent.blockPressed) {
+    player.attackPresses = [];
     player.blockPressEligible = t0 - player.blockPressedAt >= DEFLECT.mashLockout;
     player.blockPressedAt = t0;
   }
 
   // Attack / finishing blow (R1, R6).
   if (intent.attack) {
+    player.attackPresses.push(t0);
+    if (player.attackPresses.length > 2) player.attackPresses.shift();
     const inReach = distanceBetween(game) <= PLAYER.attackReach;
     if (enemy.state === 'broken' && inReach && canAct(player)) {
       game.events.push(...applyPlayerHit(enemy, t0));
       player.status = 'ready';
       player.attackPhase = null;
+      player.attackKind = null;
       endGame(game, 'won', t0);
       return;
     }
@@ -134,6 +159,7 @@ function handleInput(game, intent, t0) {
       player.status = 'attacking';
       player.statusStart = t0;
       player.attackPhase = 'windup';
+      player.attackKind = 'normal';
       player.attackHitAt = t0 + PLAYER.attackWindup;
       player.statusUntil = player.attackHitAt + PLAYER.attackRecovery;
       player.blocking = false;
@@ -141,7 +167,27 @@ function handleInput(game, intent, t0) {
     }
   }
 
+  // Ember Strike (R9): J, J, L with a full Focus meter.
+  if (intent.special) {
+    const sequence = comboSequenceComplete(player, t0);
+    player.attackPresses = [];
+    if (sequence && player.focus >= SPECIAL.focusMax && canStartSpecial(player)) {
+      player.focus = 0;
+      player.status = 'attacking';
+      player.statusStart = t0;
+      player.attackPhase = 'windup';
+      player.attackKind = 'special';
+      player.attackHitAt = t0 + SPECIAL.windup;
+      player.statusUntil = player.attackHitAt + SPECIAL.recovery;
+      player.blocking = false;
+      game.events.push({ type: 'specialStart' });
+    } else if (sequence) {
+      game.events.push({ type: 'specialNotReady', focus: player.focus });
+    }
+  }
+
   // Dodge (R1).
+  if (intent.dodge) player.attackPresses = [];
   if (intent.dodge && canAct(player) && t0 - player.lastDodgeAt >= PLAYER.dodgeCooldown) {
     const f = facing(game);
     let dir;
@@ -152,6 +198,7 @@ function handleInput(game, intent, t0) {
     player.statusStart = t0;
     player.statusUntil = t0 + PLAYER.dodgeDuration;
     player.attackPhase = null;
+    player.attackKind = null;
     player.lastDodgeAt = t0;
     player.dodgeDir = dir;
     player.blocking = false;
@@ -166,6 +213,7 @@ function handleInput(game, intent, t0) {
     if (player.status === 'attacking') {
       player.status = 'ready';
       player.attackPhase = null;
+      player.attackKind = null;
     }
     player.blocking = true;
   } else {
@@ -179,14 +227,17 @@ function stepPlayer(game, intent, dt, t1) {
   // Status timers.
   if (player.status === 'attacking' && player.attackPhase === 'windup' && t1 >= player.attackHitAt) {
     player.attackPhase = 'recovery';
-    if (distanceBetween(game) <= PLAYER.attackReach) {
-      game.events.push(...applyPlayerHit(game.enemy, player.attackHitAt));
+    const special = player.attackKind === 'special';
+    const reach = special ? SPECIAL.reach : PLAYER.attackReach;
+    if (distanceBetween(game) <= reach) {
+      const hit = special ? applySpecialHit : applyPlayerHit;
+      game.events.push(...hit(game.enemy, player.attackHitAt));
       if (game.enemy.state === 'dead') {
         endGame(game, 'won', player.attackHitAt);
         return;
       }
     } else {
-      game.events.push({ type: 'whiff' });
+      game.events.push({ type: 'whiff', special });
     }
   }
   if (player.status === 'dodging') {
@@ -200,6 +251,7 @@ function stepPlayer(game, intent, dt, t1) {
     }
     player.status = 'ready';
     player.attackPhase = null;
+    player.attackKind = null;
     player.blocking = intent.blockHeld;
   }
 
@@ -272,7 +324,7 @@ export function update(game, intent, dt) {
     const sub = Math.min(MAX_STEP_MS, remaining);
     const subIntent = first
       ? intent
-      : { ...intent, attack: false, blockPressed: false, dodge: false, restart: false };
+      : { ...intent, attack: false, blockPressed: false, dodge: false, special: false, restart: false };
     step(game, subIntent, sub);
     remaining -= sub;
     first = false;

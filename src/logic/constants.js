@@ -111,3 +111,16 @@ export const ATTACK_WEIGHTS = Object.freeze([
 ]);
 
 export const END_SCREEN_DELAY = 1500;
+
+// R9: Ember Strike special combo (J, J, L) powered by the Focus meter.
+export const SPECIAL = Object.freeze({
+  inputWindow: 800, // first J to L, at most
+  focusMax: 3,
+  focusPerDeflect: 1,
+  windup: 300,
+  recovery: 500,
+  reach: 3.0,
+  damage: 20,
+  posture: 20,
+});
+

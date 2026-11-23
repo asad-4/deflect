@@ -1,6 +1,6 @@
 // HTML/CSS HUD. Reads game state; the only thing it sends back is the
 // Restart button click (forwarded as a restart input by main.js).
-import { PLAYER } from '../logic/constants.js';
+import { PLAYER, SPECIAL } from '../logic/constants.js';
 import { distanceBetween, endScreenVisible } from '../logic/game.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -17,6 +17,8 @@ export function createHud({ onRestart }) {
     playerPostureFill: $('#player-panel .posture .fill'),
     warning: $('#warning'),
     finisher: $('#finisher-prompt'),
+    focus: $('#focus'),
+    focusPips: [...document.querySelectorAll('#focus .pip')],
     vignette: $('#vignette'),
     flash: $('#flash'),
     controls: $('#controls'),
@@ -29,6 +31,7 @@ export function createHud({ onRestart }) {
 
   let hurt = 0;
   let flash = 0;
+  let denied = 0;
 
   function setBar(fill, trail, fraction) {
     fill.style.transform = `scaleX(${fraction})`;
@@ -45,7 +48,9 @@ export function createHud({ onRestart }) {
   function onEvent(e) {
     if (e.type === 'playerHit') hurt = 1;
     if (e.type === 'deflect') flash = 1;
-    if (e.type === 'restart') hurt = flash = 0;
+    if (e.type === 'specialStart') flash = 1;
+    if (e.type === 'specialNotReady') denied = 1;
+    if (e.type === 'restart') hurt = flash = denied = 0;
   }
 
   function update(game, dt) {
@@ -64,6 +69,12 @@ export function createHud({ onRestart }) {
     el.finisher.textContent =
       enemy.state === 'broken' && !canFinish ? 'Get closer for the finishing blow' : 'J — Finishing Blow';
     if (enemy.state === 'broken' && game.status === 'playing') el.finisher.classList.add('show');
+
+    // R9 Focus meter.
+    el.focusPips.forEach((pip, i) => pip.classList.toggle('on', i < player.focus));
+    el.focus.classList.toggle('full', player.focus >= SPECIAL.focusMax);
+    denied = Math.max(0, denied - dt / 400);
+    el.focus.classList.toggle('denied', denied > 0);
 
     hurt = Math.max(0, hurt - dt / 450);
     flash = Math.max(0, flash - dt / 180);

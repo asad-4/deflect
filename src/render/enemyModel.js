@@ -482,6 +482,7 @@ export function createEnemyModel() {
         break;
       }
       case 'enemyHit':
+      case 'specialHit':
       case 'enemyBlocked':
         flinchAt = lastTime;
         break;

@@ -1,4 +1,4 @@
-// Maps raw keyboard/mouse input to game actions (R1). No DOM access here:
+// Maps raw keyboard/mouse input to game actions (R1, R9). No DOM access here:
 // the browser layer forwards event.code / event.button into these functions.
 
 export const KEY_BINDINGS = Object.freeze({
@@ -11,6 +11,7 @@ export const KEY_BINDINGS = Object.freeze({
   KeyD: 'right',
   ArrowRight: 'right',
   KeyJ: 'attack',
+  KeyL: 'special',
   KeyK: 'block',
   Space: 'dodge',
   KeyR: 'restart',
@@ -64,6 +65,7 @@ export function consumeIntent(input) {
     blockHeld: h.has('block'),
     blockPressed: p.has('block'),
     dodge: p.has('dodge'),
+    special: p.has('special'),
     restart: p.has('restart'),
   };
   p.clear();
@@ -78,6 +80,7 @@ export function emptyIntent(overrides = {}) {
     blockHeld: false,
     blockPressed: false,
     dodge: false,
+    special: false,
     restart: false,
     ...overrides,
   };

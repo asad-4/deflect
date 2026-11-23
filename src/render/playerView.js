@@ -14,6 +14,9 @@ const POSES = {
   hit: { pos: [0.36, -0.45, -0.55], rot: [0.4, 0, 0.9] },
   broken: { pos: [0.3, -0.55, -0.5], rot: [0.1, 0, 2.2] },
   finisher: { pos: [0.12, -0.22, -0.8], rot: [0.05, 1.5, -1.57] },
+  // R9 Ember Strike: sword hauled high over the shoulder, then a full diagonal cut.
+  specialWindup: { pos: [0.38, 0.05, -0.42], rot: [1.1, 0.25, -1.0] },
+  specialSwing: { pos: [-0.28, -0.4, -0.66], rot: [-0.45, -0.8, 1.75] },
   dodge: { pos: [0.33, -0.36, -0.6], rot: [-0.15, 0.05, 0.55] },
 };
 
@@ -137,6 +140,12 @@ export function createPlayerView(camera) {
     if (time - finisherAt < 900) return { name: 'finisher', rate: 18 };
     if (player.status === 'broken') return { name: 'broken', rate: 8 };
     if (player.status === 'hitstun') return { name: 'hit', rate: 20 };
+    if (player.status === 'attacking' && player.attackKind === 'special') {
+      const t = time - player.statusStart;
+      if (t < 240) return { name: 'specialWindup', rate: 16 };
+      if (t < 520) return { name: 'specialSwing', rate: 34 };
+      return { name: 'rest', rate: 8 };
+    }
     if (player.status === 'attacking') {
       const t = time - player.statusStart;
       if (t < 170) return { name: 'windup', rate: 22 };

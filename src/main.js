@@ -98,6 +98,16 @@ function handleEvent(e) {
       sparks.burst(bossChest(), 40, { speed: 4, color: new THREE.Color(4, 2.2, 0.6), light: 10 });
       shake.add(0.3);
       break;
+    case 'specialStart':
+      sparks.burst(clashPoint(), 24, { speed: 1.5, color: new THREE.Color(4, 1.6, 0.3), light: 6 });
+      break;
+    case 'specialHit':
+      sparks.burst(bossChest(), 70, { speed: 5.5, color: new THREE.Color(4, 1.5, 0.3), dir: tmp2.set(f.x, 0.3, f.z), light: 14 });
+      shake.add(0.45);
+      break;
+    case 'focusGain':
+      if (e.full) sparks.burst(clashPoint(), 30, { speed: 2, color: new THREE.Color(4, 2.4, 0.8), light: 8 });
+      break;
     case 'finisher':
       sparks.burst(bossChest(), 90, { speed: 6, color: new THREE.Color(4, 1.4, 0.5), light: 18 });
       shake.add(0.6);

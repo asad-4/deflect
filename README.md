@@ -17,6 +17,7 @@ runtime.
 | Attack          | `J` or left mouse button     |
 | Block / deflect | `K` (hold) or right mouse button |
 | Dodge           | `Space` (with `A`/`D` to sidestep, otherwise back-step) |
+| Ember Strike    | `J` `J` `L` in quick succession (needs a full Focus meter) |
 | Restart         | `R` or `Enter` on the end screen, or click **Restart** |
 
 - **Deflect:** press block within **180 ms** of a hit landing. A white glint
@@ -34,6 +35,9 @@ runtime.
   from its attacks.
 - **Finishing blow:** when the boss's posture breaks, or its health hits zero,
   press attack within 3 m to win.
+- **Ember Strike:** every perfect deflect lights one of three Focus pips above
+  your health bar. With all three lit, press `J` `J` `L` within 0.8 s for a
+  heavy cut that breaks through the boss's guard (20 damage, +20 posture).
 
 Exact numbers for every rule are in [spec.md](spec.md).
 
@@ -58,7 +62,7 @@ npm test
 ```
 
 Vitest runs the logic tests in `tests/`. Each test name starts with the
-requirement it checks (R1–R8 in [problem.md](problem.md)), for example
+requirement it checks (R1–R8 in [problem.md](problem.md), R9 in [spec.md](spec.md)), for example
 `R2: perfect deflect inside window`. `tests/full-fight.test.js` also plays whole
 fights with a seeded random number generator.
 

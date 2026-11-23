@@ -2,7 +2,7 @@
 
 A first-person, single-arena sword duel in the browser. One player against one
 AI boss, the **Ashen Warden**. This spec makes requirements R1–R8 from
-`problem.md` exact enough to test.
+`problem.md`, and the Round 2 requirement R9, exact enough to test.
 
 All times are in **milliseconds (ms)**, distances in **metres (m)**, speeds in
 **m/s**. Health and posture are integers on a 0–100 scale unless noted.
@@ -205,6 +205,57 @@ For combos, `windup` repeats for each strike before `recovery`.
 - Restart resets everything to the initial state: health 100/100, posture 0/0,
   starting positions, boss idle.
 - While the fight is over, gameplay input is ignored.
+
+---
+
+# Round 2 — additional requirements
+
+- **R9:** Let the player perform a special combo attack by pressing **J, J, L
+  in a row**, which deals **extra damage and posture damage**, with **a Focus
+  meter that fills when you deflect**, so that **skilled players who time their
+  deflects well earn a powerful move that rewards good timing**.
+
+## R9 — Special combo: Ember Strike
+
+### Input
+
+| Action  | Key    | Type         |
+|---------|--------|--------------|
+| Special | `KeyL` | press (edge) |
+
+- The game remembers the times of the player's recent attack (`J`) presses.
+  Every `J` press counts, even one that cannot start an attack (e.g. pressed
+  during the wind-up of the previous swing).
+- Pressing `L` triggers the Ember Strike when the two most recent remembered
+  presses are both `J` and the first of them was at most **800 ms** before the
+  `L` press (the whole J, J, L sequence fits in 800 ms).
+- A block press, a dodge press or any `L` press clears the remembered presses,
+  so each Ember Strike needs a fresh J, J, L.
+
+### Focus meter
+
+- The player has a **Focus** meter from **0** to **3**, starting at 0.
+- Each **perfect deflect** (R2) adds **1**. Normal blocks, hits and dodges add
+  nothing. Focus never exceeds 3.
+- The Ember Strike needs a **full** meter (3) and uses all of it. With less
+  than 3, J, J, L does nothing extra (the J presses still act as normal attacks).
+- Restart resets Focus to 0.
+
+### The strike
+
+- It can start whenever the player is free to act **or is in its own attack
+  (wind-up or recovery)**; it replaces the swing in progress. It cannot start
+  during a dodge, hit-stun or posture-break stun.
+- Wind-up **300 ms**, then the hit is judged, then recovery **500 ms**.
+  Reach **3.0 m**. If the boss is out of reach at the hit, it misses (Focus is
+  still spent).
+- On a hit the boss takes **20** health damage and **+20** posture, **whether
+  or not it is guarding** (the Ember Strike breaks through the boss's guard).
+- If the boss reaches 0 health it is broken with no time limit (as R6); if its
+  posture fills, it is broken for 3000 ms (as R3).
+- If the boss is already broken when the Ember Strike lands, it is the
+  finishing blow (R6) and the player wins.
+- Like a normal attack, block and dodge may cancel its recovery.
 
 ---
 
