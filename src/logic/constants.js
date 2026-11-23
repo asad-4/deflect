@@ -43,6 +43,8 @@ export const ENEMY = Object.freeze({
   postureAfterBreak: 50,
   postureRecoveryPerSec: 12,
   postureRecoveryMinPerSec: 3,
+  // A perfect deflect pauses boss posture recovery for this long (R2/R3).
+  deflectRecoveryHold: 1800,
   meleeRange: 3.0,
   lungeRange: 5.0,
   glintLead: 300,

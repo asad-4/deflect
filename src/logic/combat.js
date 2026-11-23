@@ -3,7 +3,7 @@
 // Focus gain and the Ember Strike (R9), the execution check (R10).
 import { ATTACKS, DEFLECT, ENEMY, EXECUTION, PLAYER, SPECIAL } from './constants.js';
 import { applyDamage, isDead } from './health.js';
-import { addPosture } from './posture.js';
+import { addPosture, holdPostureRecovery } from './posture.js';
 import { breakEnemy, killEnemy, playerHitEffect } from './enemyAI.js';
 
 export function isInvulnerable(player, at) {
@@ -60,6 +60,8 @@ export function applyIncoming(player, enemy, attackId, outcome, at) {
         player.focus = Math.min(SPECIAL.focusMax, player.focus + SPECIAL.focusPerDeflect);
         events.push({ type: 'focusGain', focus: player.focus, full: player.focus >= SPECIAL.focusMax });
       }
+      // Chained deflects keep the boss's posture from recovering between attacks.
+      holdPostureRecovery(enemy.posture, at + ENEMY.deflectRecoveryHold);
       if (addPosture(enemy.posture, attack.deflectEnemyPosture, at)) {
         breakEnemy(enemy, at);
         events.push({ type: 'enemyPostureBreak' });
@@ -68,6 +70,7 @@ export function applyIncoming(player, enemy, attackId, outcome, at) {
     }
     case 'block': {
       events.push({ type: 'block', attack: attackId });
+      enemy.posture.holdUntil = -Infinity; // a normal block breaks the deflect chain
       if (addPosture(player.posture, attack.blockPosture, at)) {
         setPlayerStatus(player, 'broken', at, PLAYER.postureBreakStun);
         events.push({ type: 'playerPostureBreak' });
@@ -75,6 +78,7 @@ export function applyIncoming(player, enemy, attackId, outcome, at) {
       break;
     }
     case 'hit': {
+      enemy.posture.holdUntil = -Infinity; // so does taking the hit
       applyDamage(player.health, attack.damage);
       events.push({ type: 'playerHit', attack: attackId, damage: attack.damage });
       if (player.status !== 'broken') setPlayerStatus(player, 'hitstun', at, PLAYER.hitStun);

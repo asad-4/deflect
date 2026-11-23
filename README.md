@@ -31,9 +31,11 @@ runtime.
   300 ms after the previous one can't deflect.
 - **Red warning:** the lunge is **unblockable**. When the red diamond appears,
   dodge.
-- **Posture:** posture recovers after 1.2 s without new pressure. The more the
-  boss is hurt, the slower its posture recovers, so hit it while it recovers
-  from its attacks.
+- **Posture:** posture recovers after 1.2 s without new pressure. Each perfect
+  deflect also freezes the boss's posture for 1.8 s, so chained deflects can
+  break it on their own; a normal block or taking a hit ends the freeze. The
+  more the boss is hurt, the slower its posture recovers, so hit it while it
+  recovers from its attacks.
 - **Finishing blow:** when the boss's posture breaks, or its health hits zero,
   press attack within 3 m to win.
 - **Ember Strike:** every perfect deflect lights one of three Focus pips above

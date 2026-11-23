@@ -92,6 +92,8 @@ Let `p` be the time the block key was last **pressed** (edge, not held) and
   gives normal blocks.
 - **Reward (deflect):** player takes 0 damage; boss gains the attack's
   *deflect posture* (large); player gains a small posture amount; spark effect.
+  It also **pauses the boss's posture recovery for 1800 ms** from the impact
+  (R3), so a chain of perfect deflects can break the boss on its own.
 - **Penalty (normal block):** player takes 0 health damage but gains the
   attack's full *block posture*, which can break the player's guard (R3).
 - **Penalty (no guard / late press):** full health damage (R7).
@@ -126,6 +128,13 @@ Player attacks on the boss:
 - Boss recovers **12 per second × (boss health ÷ 100)**, but never less than
   **3 per second**. (Damaging the boss slows its posture recovery.)
 - Nobody recovers while broken.
+- **Deflect chain:** each perfect deflect (R2) stops boss posture recovery
+  until **1800 ms** after its impact (a later deflect extends the pause; it
+  never shortens it). Recovery still also waits the normal 1200 ms after the
+  last posture gain. A **normal block** or a **hit** on the player (including
+  the unblockable Lunge) ends the pause at once, and so does the end of a
+  boss posture break. Only a well-timed chain therefore keeps the boss's
+  posture climbing; normal blocks alone never break it.
 
 ### Posture break
 

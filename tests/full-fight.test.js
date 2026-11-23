@@ -46,6 +46,40 @@ function skilledBot(game, state) {
   return intent;
 }
 
+/**
+ * Never attacks except for the finishing blow. Dodges the lunge and guards
+ * every other strike, either as a perfect deflect (`perfect`) or as a press
+ * that is too early, which only gives a normal block.
+ */
+function guardOnlyBot(perfect) {
+  const lead = perfect ? 100 : 400;
+  return (game, state) => {
+    const { enemy } = game;
+    const intent = emptyIntent();
+    if (enemy.state === 'broken') {
+      intent.attack = true;
+      intent.forward = 1;
+      return intent;
+    }
+    const tg = enemy.telegraph;
+    const key = tg ? `${enemy.stateStart}:${tg.strike}` : null;
+    if (tg && tg.unblockable) {
+      if (tg.msToImpact <= 150 && state.dodged !== key) {
+        intent.dodge = true;
+        intent.right = 1;
+        state.dodged = key;
+      }
+      return intent;
+    }
+    if (tg && tg.msToImpact <= lead && state.pressed !== key) {
+      intent.blockPressed = true;
+      state.pressed = key;
+    }
+    intent.blockHeld = Boolean(tg) && state.pressed === key;
+    return intent;
+  };
+}
+
 function play(seed, bot, maxMs = 180000) {
   const game = createGame({ rng: mulberry32(seed) });
   const state = {};
@@ -66,6 +100,22 @@ describe('Full fight simulations', () => {
   });
 
   for (const seed of [1, 2, 3]) {
+    it(`R2/R3: chained perfect deflects alone break the boss and win (seed ${seed})`, () => {
+      const { game, counts } = play(seed, guardOnlyBot(true), 120000);
+      expect(game.status).toBe('won');
+      expect(counts.enemyHit ?? 0).toBe(0);
+      expect(counts.enemyBlocked ?? 0).toBe(0);
+      expect(counts.deflect).toBeGreaterThan(0);
+      expect(counts.finisher).toBe(1);
+    });
+
+    it(`R2/R3: normal blocks alone never break the boss (seed ${seed})`, () => {
+      const { game, counts } = play(seed, guardOnlyBot(false), 120000);
+      expect(counts.deflect ?? 0).toBe(0);
+      expect(counts.enemyPostureBreak ?? 0).toBe(0);
+      expect(game.status).not.toBe('won');
+    });
+
     it(`R2/R3/R5/R6: deflecting, dodging and punishing recovery wins (seed ${seed})`, () => {
       const { game, counts } = play(seed, skilledBot);
       expect(game.status).toBe('won');

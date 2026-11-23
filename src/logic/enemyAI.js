@@ -157,6 +157,7 @@ export function updateEnemy(enemy, dt, now, playerPos, rng = Math.random) {
       if (now >= enemy.brokenUntil) {
         setPosture(enemy.posture, ENEMY.postureAfterBreak);
         enemy.posture.lastGainAt = now;
+        enemy.posture.holdUntil = -Infinity;
         enterIdle(enemy, now, rng);
       }
       break;

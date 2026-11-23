@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { addPosture, createPosture, recoverPosture } from '../src/logic/posture.js';
+import { addPosture, createPosture, holdPostureRecovery, recoverPosture } from '../src/logic/posture.js';
 import { updateEnemy } from '../src/logic/enemyAI.js';
-import { ENEMY, PLAYER, POSTURE_RECOVERY_DELAY } from '../src/logic/constants.js';
+import { ATTACKS, ENEMY, PLAYER, POSTURE_RECOVERY_DELAY } from '../src/logic/constants.js';
 import {
   blockAt,
   bossAttacks,
@@ -171,5 +171,92 @@ describe('R3: posture break', () => {
     runUntil(game, impact + ENEMY.brokenDuration + 10);
     expect(game.enemy.state).toBe('idle');
     expect(game.enemy.posture.current).toBe(50);
+  });
+});
+
+describe('R2/R3: perfect deflects pause boss posture recovery', () => {
+  // Deflects a slash at its impact (700 ms), then freezes the boss.
+  function deflectSlash() {
+    const game = holdEnemy(newGame());
+    const impact = bossAttacks(game, 'slash');
+    runUntil(game, impact - 100);
+    expect(types(blockAt(game, impact + 10))).toContain('deflect');
+    return { game, impact };
+  }
+
+  it('R2/R3: the pause is 1800 ms', () => {
+    expect(ENEMY.deflectRecoveryHold).toBe(1800);
+  });
+
+  it('R3: holdPostureRecovery pauses recovery and never shortens a pause', () => {
+    const p = createPosture();
+    addPosture(p, 50, 0);
+    holdPostureRecovery(p, 3000);
+    holdPostureRecovery(p, 2000);
+    expect(p.holdUntil).toBe(3000);
+    recoverPosture(p, 1000, 2999, 12); // past the 1200 ms delay, still held
+    expect(p.current).toBe(50);
+    recoverPosture(p, 1000, 3000, 12);
+    expect(p.current).toBe(38);
+  });
+
+  it('R2/R3: after a perfect deflect the boss posture holds for 1800 ms, then recovers', () => {
+    const { game, impact } = deflectSlash();
+    const gained = ATTACKS.slash.deflectEnemyPosture;
+    freezeEnemy(game);
+    expect(game.enemy.posture.holdUntil).toBe(impact + ENEMY.deflectRecoveryHold);
+    // The normal 1200 ms delay has passed, but the deflect pause has not.
+    runUntil(game, impact + ENEMY.deflectRecoveryHold - 10);
+    expect(game.enemy.posture.current).toBe(gained);
+    run(game, 1000);
+    expect(game.enemy.posture.current).toBeLessThan(gained);
+    expect(game.enemy.posture.current).toBeCloseTo(gained - ENEMY.postureRecoveryPerSec, 0);
+  });
+
+  it('R2/R3: a later deflect extends the pause from its own impact', () => {
+    const { game } = deflectSlash();
+    const second = bossAttacks(game, 'slash');
+    runUntil(game, second - 100);
+    expect(types(blockAt(game, second + 10))).toContain('deflect');
+    freezeEnemy(game);
+    expect(game.enemy.posture.holdUntil).toBe(second + ENEMY.deflectRecoveryHold);
+    const posture = game.enemy.posture.current;
+    expect(posture).toBe(2 * ATTACKS.slash.deflectEnemyPosture);
+    runUntil(game, second + ENEMY.deflectRecoveryHold - 10);
+    expect(game.enemy.posture.current).toBe(posture);
+  });
+
+  it('R2/R3: a normal block ends the pause (only the 1200 ms delay remains)', () => {
+    const { game, impact } = deflectSlash();
+    const second = bossAttacks(game, 'slash');
+    runUntil(game, second - 400); // pressed too early: normal block
+    expect(types(blockAt(game, second + 10))).toContain('block');
+    freezeEnemy(game);
+    expect(game.enemy.posture.holdUntil).toBe(-Infinity);
+    runUntil(game, impact + ENEMY.deflectRecoveryHold - 10);
+    expect(game.enemy.posture.current).toBeLessThan(ATTACKS.slash.deflectEnemyPosture);
+  });
+
+  it('R2/R3: taking a hit ends the pause', () => {
+    const { game, impact } = deflectSlash();
+    const second = bossAttacks(game, 'slash');
+    expect(types(runUntil(game, second + 10))).toContain('playerHit');
+    freezeEnemy(game);
+    expect(game.enemy.posture.holdUntil).toBe(-Infinity);
+    runUntil(game, impact + ENEMY.deflectRecoveryHold - 10);
+    expect(game.enemy.posture.current).toBeLessThan(ATTACKS.slash.deflectEnemyPosture);
+  });
+
+  it('R3: the pause is cleared when a boss posture break ends', () => {
+    const game = holdEnemy(newGame());
+    game.enemy.posture.current = 95;
+    game.enemy.posture.lastGainAt = 0;
+    const impact = bossAttacks(game, 'slash');
+    runUntil(game, impact - 100);
+    blockAt(game, impact + 10);
+    expect(game.enemy.state).toBe('broken');
+    runUntil(game, impact + ENEMY.brokenDuration + 10);
+    expect(game.enemy.state).toBe('idle');
+    expect(game.enemy.posture.holdUntil).toBe(-Infinity);
   });
 });
