@@ -225,10 +225,14 @@ canvas {
   background: rgba(255, 240, 220, 0.45);
 }
 
+/* Sits right of the centred player panel (half-width min(210px, 30vw)) and is
+   capped to the free space there, so it wraps instead of covering the bars. */
 #controls {
   position: absolute;
   right: 20px;
   bottom: 24px;
+  box-sizing: border-box;
+  max-width: calc(50% - min(210px, 30vw) - 36px);
   font-size: 13px;
   line-height: 1.6;
   padding: 10px 14px;
